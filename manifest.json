@@ -3,7 +3,7 @@
   "name": "AHA Recipes",
   "description": "Beautifies homebrewersassociation recipes.",
   "homepage_url": "https://github.com/molok/aha-recipes-webext",
-  "version": "1.0",
+  "version": "0.1",
   "icons": {
     "48": "icons/icon.png",
     "96": "icons/icon@2x.png"
