@@ -170,7 +170,7 @@ radioOptions.forEach( x => {
 
 transformRecipe()
 
-// Now monitor the DOM for additions and substitute emoji into new nodes.
+// Now monitor the DOM for additions
 // @see https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver.
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {

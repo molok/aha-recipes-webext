@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "Emoji Substitution",
-  "description": "Replaces words with emojis.",
-  "homepage_url": "https://github.com/mdn/webextensions-examples/tree/master/emoji-substitution",
+  "name": "AHA Recipes",
+  "description": "Beautifies homebrewersassociation recipes.",
+  "homepage_url": "https://github.com/molok/aha-recipes-webext",
   "version": "1.0",
   "icons": {
     "48": "icons/icon.png",

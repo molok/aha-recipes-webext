@@ -13,3 +13,8 @@ homebrewersassociation website don't have a consistent schema so it can be
 tricky to get everything right 100% of the time
 
 I've only focused on all-grain beer recipes, this is intended for personal use
+
+# To package
+
+$> npm install --global web-ext
+$> web-ext build
