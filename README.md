@@ -17,4 +17,5 @@ I've only focused on all-grain beer recipes, this is intended for personal use
 # To package
 
 $> npm install --global web-ext
+
 $> web-ext build

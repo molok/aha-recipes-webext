@@ -35,6 +35,30 @@ function normalizeQty(x) {
   }
 }
 
+/**
+ *
+ * @param malts {Element[]}
+ */
+function rewriteMalts(inputMalts) {
+  const malts = inputMalts.map(m => ({element: m, origContent: m.textContent}))
+  malts.forEach(m => normalizeQty(m))
+  malts.forEach(m => {
+    console.log(`${m.content} - ${m.g}`)
+  })
+
+  const tot = malts.filter(x => x.g).map(x => x.g).reduce((acc, curr) => acc + curr, 0)
+  malts.filter(x => x.g).forEach(x => x.perc = round(x.g * 100 / tot, 1))
+  malts.filter(x => x.g).forEach(x => x.newContent = x.content
+      .replaceAll(/\([0-9.]+\s?%\)/g, '') /* remove existing percentages */
+      .replace('#QTY#', `🌾 ${x.perc.toFixed(2).padStart(6)}% (${formatGrams(x.g)}) `))
+
+  malts.forEach(m => {
+    if (m.newContent !== m.origContent) {
+      m.element.textContent = m.newContent
+    }
+  })
+}
+
 function transformMalts(input) {
   let lines = input.split("\n").map((x, idx) => ({id: idx, origContent: x}))
   let maltsStart = lines.filter(x => x.origContent.toUpperCase().includes("MALTS") || x.origContent.toUpperCase().includes("FERMENTABLES")).map(x => x.id)[0]
@@ -156,6 +180,59 @@ radio.innerHTML = `
 `
 ingredients.appendChild(radio)
 
+function transformRecipe2() {
+  /** @type {Element} */
+  const ingredients = document.querySelector('.ingredients')
+  /** @type {NodeListOf<Element>} */
+  const headersStrong = ingredients.querySelectorAll("li>strong")
+  if (headersStrong.length > 0) {
+    let ingredientGroupsAll = {}
+    let currentHeader = null
+    ingredients.querySelectorAll('li').forEach(
+        li => {
+          let maybeHeader = li.querySelector("strong")
+          if (maybeHeader != null) {
+            currentHeader = maybeHeader.textContent
+            return
+          }
+          if (ingredientGroupsAll[currentHeader] === undefined) {
+            ingredientGroupsAll[currentHeader] = []
+          }
+          ingredientGroupsAll[currentHeader] = [...ingredientGroupsAll[currentHeader], li]
+        }
+    )
+
+    // Object.getOwnPropertyNames(ingredientGroupsAll).forEach(x => {
+    //   console.log(`${x}: ${ingredientGroupsAll[x].map(x => x.textContent + "\n")}`)
+    // })
+
+    let ingredientGroups = {malts: [], hops: [], yeast: [], additions: []}
+
+    Object.getOwnPropertyNames(ingredientGroupsAll).forEach(x => {
+      if (x.toUpperCase().includes("MALT") || x.toUpperCase().includes("FERMENTABLE")) {
+        ingredientGroups.malts = ingredientGroupsAll[x]
+      }
+
+      if (x.toUpperCase().includes("HOP")) {
+        ingredientGroups.hops = ingredientGroupsAll[x]
+      }
+
+      if (x.toUpperCase().includes("YEAST")) {
+        ingredientGroups.yeast = ingredientGroupsAll[x]
+      }
+
+      if (x.toUpperCase().includes("ADDITION")) {
+        ingredientGroups.additions = ingredientGroupsAll[x]
+      }
+    })
+
+    if (ingredientGroups.malts) {
+      rewriteMalts(ingredientGroups.malts)
+    }
+
+  }
+}
+
 let radioOptions = document.querySelectorAll('input[name="recipe_transform"]')
 radioOptions.forEach( x => {
   x.addEventListener("change", function() {
@@ -163,28 +240,9 @@ radioOptions.forEach( x => {
     if (value === 'original') {
       showOriginal()
     } else {
-      transformRecipe()
+      transformRecipe2()
     }
   })
 })
 
-transformRecipe()
-
-// Now monitor the DOM for additions
-// @see https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver.
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-      // This DOM change was new nodes being added. Run our substitution
-      // algorithm on each newly added node.
-      for (let i = 0; i < mutation.addedNodes.length; i++) {
-        const newNode = mutation.addedNodes[i];
-        replaceText(newNode);
-      }
-    }
-  });
-});
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
+transformRecipe2()
