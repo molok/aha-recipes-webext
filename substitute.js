@@ -17,13 +17,17 @@ function usgallons_to_l(gal) {
 
 /* adds content and g */
 function normalizeQty(x) {
-  let lbs = (x.origContent.match(/\(?[0-9.]+ (lb)s?\.?\s?\)?\s/gi)||[])[0]
-  let ozs = (x.origContent.match(/\(?[0-9.]+ (oz)s?\.?\s?\)?\s/gi)||[])[0]
-  let kgs = (x.origContent.match(/\(?[0-9.]+ (kg)s?\.?\s?\)?\s/gi)||[])[0]
-  let gs = (x.origContent.match(/\(?[0-9.]+ (g)s?\.?\s?\)?\s/gi)||[])[0]
-  x.content = x.origContent.replace(lbs, '#QTY#').replace(ozs, '#QTY#').replace(kgs, '#QTY#').replace(gs, '#QTY#')
+  let origContent = x.origContent.replace("½", "0.5")
+  let lbs = (origContent.match(/\(?[0-9.]+ ?(lb)s?\.?\s?\)?\s/gi)||[])[0]
+  let ozs = (origContent.match(/\(?[0-9.]+ ?(oz)s?\.?\s?\)?\s/gi)||[])[0]
+  let kgs = (origContent.match(/\(?[0-9.]+ ?(kg)s?\.?\s?\)?\s/gi)||[])[0]
+  let gs = (origContent.match(/\(?[0-9.]+ ?(g)s?\.?\s?\)?\s/gi)||[])[0]
+  let tsp = (origContent.match(/\(?[0-9.]+ ?(tsp)s?\.?\s?\)?\s/gi)||[])[0]
+  let ml = (origContent.match(/\(?[0-9.]+ ?(ml)s?\.?\s?\)?\s/gi)||[])[0]
+  x.content = [lbs, ozs, kgs, gs, tsp, ml].reduce((acc, curr) => acc.replace(curr, '#QTY#'), origContent)
       .replaceAll(/  /g, ' ')
       .replaceAll(/(#QTY#|#QTY# ){2,}/g, '#QTY#')
+
   if (kgs) {
     x.g = (+(kgs.match(/[0-9.]+/))) * 1000
   } else if (gs) {
@@ -32,6 +36,10 @@ function normalizeQty(x) {
     x.g = lb_to_g(+(lbs.match(/[0-9.]+/)))
   } else if (ozs) {
     x.g = oz_to_g(+(ozs.match(/[0-9.]+/)))
+  } else if (ml) {
+    x.ml = (+(ml.match(/[0-9.]+/)))
+  } else if (tsp) {
+    x.ml = 5 * (+(tsp.match(/[0-9.]+/)))
   }
 }
 
@@ -42,9 +50,6 @@ function normalizeQty(x) {
 function rewriteMalts(inputMalts) {
   const malts = inputMalts.map(m => ({element: m, origContent: m.textContent}))
   malts.forEach(m => normalizeQty(m))
-  malts.forEach(m => {
-    console.log(`${m.content} - ${m.g}`)
-  })
 
   const tot = malts.filter(x => x.g).map(x => x.g).reduce((acc, curr) => acc + curr, 0)
   malts.filter(x => x.g).forEach(x => x.perc = round(x.g * 100 / tot, 1))
@@ -53,11 +58,31 @@ function rewriteMalts(inputMalts) {
       .replace('#QTY#', `🌾 ${x.perc.toFixed(2).padStart(6)}% (${formatGrams(x.g)}) `))
 
   malts.forEach(m => {
-    if (m.newContent !== m.origContent) {
+    if (m.newContent && m.newContent !== m.origContent) {
       m.element.textContent = m.newContent
     }
   })
 }
+
+function rewriteGramsPerL(inputHops, batchSizeL, icon) {
+  const hops = inputHops.map(m => ({element: m, origContent: m.textContent}))
+  hops.forEach(m => normalizeQty(m))
+
+  hops.filter(x => x.g).forEach(x => x.gPerL = round(x.g / batchSizeL, 1))
+  hops.filter(x => x.ml).forEach(x => x.mlPerL = round(x.ml / batchSizeL, 1))
+  hops.filter(x => x.gPerL).forEach(x => x.newContent = x.content
+      .replace('#QTY#', `${icon} ${x.gPerL.toFixed(2).padStart(3)}g/L (${x.g.toFixed(0)}g) `))
+
+  hops.filter(x => x.mlPerL).forEach(x => x.newContent = x.content
+      .replace('#QTY#', `${icon} ${x.mlPerL.toFixed(2).padStart(3)}ml/L (${x.ml.toFixed(0)}ml) `))
+
+  hops.forEach(m => {
+    if (m.newContent && m.newContent !== m.origContent) {
+      m.element.textContent = m.newContent
+    }
+  })
+}
+
 
 function transformMalts(input) {
   let lines = input.split("\n").map((x, idx) => ({id: idx, origContent: x}))
@@ -70,10 +95,6 @@ function transformMalts(input) {
       (x.origContent.replaceAll(/<[^>]*>/g, '').trim().length >= 4 && x.origContent.replaceAll(/<[^>]*>/g, '').toUpperCase() === x.origContent.replaceAll(/<[^>]*>/g, '')) ||
       x.origContent.includes("hops") || x.origContent.includes("pellets"))
       .map(x => x.id)[0]
-
-  // lines.forEach(x => console.log(`${x.id} => ${x.origContent}`))
-
-  // console.log({maltsStart, maltsEnd})
 
   const malts = lines.slice(maltsStart +1, maltsEnd)
       .filter(x => !x.origContent.toUpperCase().includes("YIELD") && !x.origContent.toUpperCase().includes("YEAST") && !x.origContent.toUpperCase().includes("HOPS"))
@@ -144,7 +165,6 @@ function transformRecipe() {
     const ingredients = document.querySelector(".ingredients");
     original = ingredients.innerHTML
 
-    // console.log(`ingredients: ${ingredients.innerHTML}`)
     const newContent = transformMalts(ingredients.innerHTML)
     const newContent2 = transformHops(newContent, "HOPS")
     const newContent3 = transformHops(newContent2, "ADDITIONAL")
@@ -185,6 +205,9 @@ function transformRecipe2() {
   const ingredients = document.querySelector('.ingredients')
   /** @type {NodeListOf<Element>} */
   const headersStrong = ingredients.querySelectorAll("li>strong")
+
+  let ingredientGroups = {malts: [], hops: [], yeast: [], additions: []}
+
   if (headersStrong.length > 0) {
     let ingredientGroupsAll = {}
     let currentHeader = null
@@ -201,12 +224,6 @@ function transformRecipe2() {
           ingredientGroupsAll[currentHeader] = [...ingredientGroupsAll[currentHeader], li]
         }
     )
-
-    // Object.getOwnPropertyNames(ingredientGroupsAll).forEach(x => {
-    //   console.log(`${x}: ${ingredientGroupsAll[x].map(x => x.textContent + "\n")}`)
-    // })
-
-    let ingredientGroups = {malts: [], hops: [], yeast: [], additions: []}
 
     Object.getOwnPropertyNames(ingredientGroupsAll).forEach(x => {
       if (x.toUpperCase().includes("MALT") || x.toUpperCase().includes("FERMENTABLE")) {
@@ -225,11 +242,34 @@ function transformRecipe2() {
         ingredientGroups.additions = ingredientGroupsAll[x]
       }
     })
+  } else {
+    ingredientGroups.malts = [...ingredients.querySelectorAll('li')]
+        .filter(m => ["MALT", "BARLEY", "OATS", "EXTRACT"].find( c => m.textContent.toUpperCase().includes(c)) !== undefined)
 
-    if (ingredientGroups.malts) {
-      rewriteMalts(ingredientGroups.malts)
-    }
+    ingredientGroups.hops = [...ingredients.querySelectorAll('li')]
+        .filter(m => ["HOP", "PELLET", " AA ", " A.A "].find( c => m.textContent.toUpperCase().includes(c)) !== undefined)
 
+    ingredientGroups.yeast = [...ingredients.querySelectorAll('li')]
+        .filter(m => ["YEAST"].find( c => m.textContent.toUpperCase().includes(c)) !== undefined)
+
+    ingredientGroups.additions = [...ingredients.querySelectorAll('li')]
+        .filter(m => ["IRISH MOSS", "PROTAFLOC"].find( c => m.textContent.toUpperCase().includes(c)) !== undefined)
+  }
+
+  if (ingredientGroups.malts) {
+    rewriteMalts(ingredientGroups.malts)
+  }
+
+  if (ingredientGroups.hops) {
+    rewriteGramsPerL(ingredientGroups.hops, 10, "🌿")
+  }
+
+  if (ingredientGroups.yeast) {
+    rewriteGramsPerL(ingredientGroups.yeast, 10, "🧪")
+  }
+
+  if (ingredientGroups.additions) {
+    rewriteGramsPerL(ingredientGroups.additions, 10, "✨")
   }
 }
 
