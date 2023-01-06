@@ -230,12 +230,13 @@ function batchSize(si, ingredients) {
   let batchSizeL = null
   let batchSizeElement = [...ingredients.querySelectorAll("p")].find(e => e.textContent.includes("Yield:"))
   if (batchSizeElement !== undefined) {
-    const batchSizeGRaw = (batchSizeElement.textContent.match(/\(?[0-9.]+ (us|u.s.)? ?(gallon|gal)s?\.?\)?/gi) || [])[0]
-    const batchSizeLRaw = (batchSizeElement.textContent.match(/\(?[0-9.]+ (liter|l)s?\.?\)?/gi) || [])[0]
-    if (batchSizeLRaw) {
-      batchSizeL = +(batchSizeLRaw.match(/[0-9.]+/)[0])
-    } else if (batchSizeGRaw) {
+    const batchSizeGRaw = (batchSizeElement.textContent.match(/\(?[0-9.,]+ (us|u.s.)? ?(gallon|gal)s?\.?\)?/gi) || [])[0]
+    const batchSizeLRaw = (batchSizeElement.textContent.match(/\(?[0-9.,]+ (liter|l)s?\.?\)?/gi) || [])[0]
+
+    if (batchSizeGRaw) {
       batchSizeL = round(usgallons_to_l(+(batchSizeGRaw.match(/[0-9.]+/)[0])), 1)
+    } else if (batchSizeLRaw) {
+      batchSizeL = +(batchSizeLRaw.match(/[0-9.]+/)[0])
     }
 
     let content = batchSizeElement.textContent.replace(batchSizeGRaw, '#QTY#').replace(batchSizeLRaw, '#QTY#')
