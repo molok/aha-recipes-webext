@@ -17,7 +17,16 @@ function usgallons_to_l(gal) {
 
 /* adds content and g */
 function normalizeQty(x) {
-  let origContent = x.origContent.replace("½", "0.5").replace("1/2", "0.5")
+  let origContent = x.origContent.replace("½", "0.5")
+      .replace("1/2", "0.5")
+      .replace("1/3", "0.33")
+      .replace("1/4", "0.25")
+      .replace("1/5", "0.2")
+      .replace("1/6", "0.166")
+      .replace("1/7", "0.1428")
+      .replace("1/8", "0.125")
+      .replace("1/9", "0.11")
+      .replace("1/10", "0.10")
   let lbs = (origContent.match(/\(?[0-9.]+ ?(lb)s?\.?\s?\)?\s/gi)||[])[0]
   let ozs = (origContent.match(/\(?[0-9.]+ ?(oz)s?\.?\s?\)?\s/gi)||[])[0]
   let kgs = (origContent.match(/\(?[0-9.]+ ?(kg)s?\.?\s?\)?\s/gi)||[])[0]
@@ -83,7 +92,7 @@ function rewriteGramsPerL(si, inputHops, batchSizeL, icon, precision) {
       .replace('#QTY#', `${icon} ${formatGramsPerL(si, x.gPerL, x.g, precision, batchSizeL, x.clarification)} `))
 
   hops.filter(x => x.mlPerL).forEach(x => x.newContent = x.content
-      .replace('#QTY#', `${icon} ${formatMlPerL(si, x.mlPerL, x.ml, precision, batchSizeL)}`))
+      .replace('#QTY#', `${icon} ${formatMlPerL(si, x.mlPerL, x.ml, precision, batchSizeL, x.clarification)}`))
       // .replace('#QTY#', `${icon} ${x.mlPerL.toFixed(2).padStart(3)}ml/L (${x.ml.toFixed(precision)}ml) `))
 
 
@@ -299,7 +308,7 @@ function transformRecipe2(si) {
   if (ingredientGroups.malts.length === 0) {
     ingredientGroups.malts = [...ingredients.querySelectorAll('li')]
         .filter(m => !m.textContent.toUpperCase().includes("SUGAR") || !m.textContent.toUpperCase().includes("PRIM"))
-        .filter(m => ["MALT", "BARLEY", "OATS", "EXTRACT", "SUGAR"].find(c => m.textContent.toUpperCase().includes(c)) !== undefined)
+        .filter(m => ["MALT", "BARLEY", "OATS", "EXTRACT", "SUGAR", " LME", ' DME'].find(c => m.textContent.toUpperCase().includes(c)) !== undefined)
   }
 
   if (ingredientGroups.hops.length === 0) {
