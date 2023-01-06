@@ -221,17 +221,24 @@ function transformRecipe2() {
   if (ingredientGroups.additions.length > 0) { rewriteGramsPerL(ingredientGroups.additions, batchSizeL, "✨", 1) }
 }
 
-let original
+let originalIngredientsElement
 function saveOriginal() {
-  console.log('saving original')
-  // const originalTextContent = document.querySelector(".ingredients").querySelectorAll("li,p");
-  // original = [...originalTextContent].map(e => ({element: e, originalTextContent: e.textContent}))
-  original = document.querySelector('.ingredients').innerHTML
-  console.log('ok')
+  originalIngredientsElement = document.querySelector('.ingredients').cloneNode(true)
 }
 
 function showOriginal() {
-  document.querySelector('.ingredients').innerHTML = original
+  try {
+    /** @type {Element} */
+    let currentIngredients = document.querySelector('.ingredients')
+    /** @type {Element} */
+    let parent = currentIngredients.parentElement
+    parent.replaceChild(originalIngredientsElement, currentIngredients)
+
+    //clone again for next replacement, otherwise it only works the first time
+    originalIngredientsElement = document.querySelector('.ingredients').cloneNode(true)
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 createRadio()
