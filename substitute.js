@@ -211,7 +211,7 @@ function createRadio() {
   })
 }
 
-function batchSize(ingredients) {
+function batchSize(si, ingredients) {
   let batchSizeL = null
   let batchSizeElement = [...ingredients.querySelectorAll("p")].find(e => e.textContent.includes("Yield:"))
   if (batchSizeElement !== undefined) {
@@ -223,10 +223,18 @@ function batchSize(ingredients) {
       batchSizeL = round(usgallons_to_l(+(batchSizeGRaw.match(/[0-9.]+/)[0])), 1)
     }
 
-    batchSizeElement.textContent = batchSizeElement.textContent.replace(batchSizeGRaw, '#QTY#').replace(batchSizeLRaw, '#QTY#')
+    let content = batchSizeElement.textContent.replace(batchSizeGRaw, '#QTY#').replace(batchSizeLRaw, '#QTY#')
         .replaceAll(/  /g, ' ')
         .replaceAll(/(#QTY#|#QTY# ){2,}/g, '#QTY#')
-        .replace("#QTY#", `${batchSizeL} L`)
+
+    if (si) {
+      content = content.replace("#QTY#", `${batchSizeL} L`)
+    } else {
+      content = content.replace("#QTY#", `${litersToGallons(batchSizeL).toFixed(2)} US gal`)
+    }
+
+    batchSizeElement.textContent = content
+
   }
 
   return batchSizeL;
@@ -293,7 +301,7 @@ function transformRecipe2(si) {
     ingredientGroups.additions = [...ingredients.querySelectorAll('li')]
         .filter(m => ["IRISH MOSS", "PROTAFLOC", "NUTRIENT"].find( c => m.textContent.toUpperCase().includes(c)) !== undefined)
   }
-  let batchSizeL = batchSize(ingredients);
+  let batchSizeL = batchSize(si, ingredients);
 
   if (ingredientGroups.malts.length > 0) { rewriteMalts(si, ingredientGroups.malts) }
   if (ingredientGroups.hops.length > 0) { rewriteGramsPerL(si, ingredientGroups.hops, batchSizeL, "🌿", 0) }
