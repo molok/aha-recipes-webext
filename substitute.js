@@ -53,7 +53,7 @@ function normalizeQty(x) {
  *
  * @param inputMalts {Element[]}
  */
-function rewriteMalts(inputMalts) {
+function rewriteMalts(si,inputMalts) {
   const malts = inputMalts.map(m => ({element: m, origContent: m.textContent}))
   malts.forEach(m => normalizeQty(m))
 
@@ -61,7 +61,7 @@ function rewriteMalts(inputMalts) {
   malts.filter(x => x.g).forEach(x => x.perc = round(x.g * 100 / tot, 1))
   malts.filter(x => x.g).forEach(x => x.newContent = x.content
       .replaceAll(/\([0-9.]+\s?%\)/g, '') /* remove existing percentages */
-      .replace('#QTY#', `🌾 ${x.perc.toFixed(2).padStart(6)}% (${formatGrams(x.g)}) `))
+      .replace('#QTY#', `🌾 ${x.perc.toFixed(2).padStart(6)}% (${formatGrams(si, x.g)}) `))
 
   malts.forEach(m => {
     if (m.newContent && m.newContent !== m.origContent) {
@@ -89,14 +89,24 @@ function rewriteGramsPerL(inputHops, batchSizeL, icon, precision) {
   })
 }
 
-
-function formatGrams(grams) {
-  if (grams > 1000) {
-    return `${(grams / 1000).toFixed(2)} kg`
+function formatGrams(si, grams) {
+  if (si) {
+    if (grams > 1000) {
+      return `${(grams / 1000).toFixed(2)} kg`
+    } else {
+      return `${(grams).toFixed(0)} g`
+    }
   } else {
-    return `${(grams).toFixed(0)} g`
+    /* imperial */
+    let oz = grams * 0.03527396195
+    if (oz > 16) {
+      let lb = oz / 16
+      return `${(lb).toFixed(2)} lb`
+    }
+    return `${(oz).toFixed(2)} oz`
   }
 }
+
 
 // Start the recursion from the body tag.
 // replaceText(document.body);
@@ -133,11 +143,13 @@ function createRadio() {
     return div1
   }
 
-  const div1 = newRadioOption("transform", "Show Percentages", "transform")
-  const div2 = newRadioOption("original", "Show Original", "original")
+  const div1 = newRadioOption("original", "Show Original", "original")
+  const div2 = newRadioOption("transform", "Show SI and %", "transform")
+  const div3 = newRadioOption("imperial", "Show Imperial and %", "imperial")
 
   radio.appendChild(div1)
   radio.appendChild(div2)
+  radio.appendChild(div3)
 
   ingredients.appendChild(radio)
 
@@ -149,8 +161,10 @@ function createRadio() {
       let value = this.value
       if (value === 'original') {
         showOriginal()
-      } else {
+      } else if (value === 'transform') {
         transformRecipe2()
+      } else if (value === 'imperial') {
+        transformRecipe2(false)
       }
     })
   })
@@ -177,7 +191,11 @@ function batchSize(ingredients) {
   return batchSizeL;
 }
 
-function transformRecipe2() {
+function transformRecipe2(si) {
+  showOriginal()
+  if (si === undefined) {
+    si = true
+  }
   /** @type {Element} */
   const ingredients = document.querySelector('.ingredients')
   /** @type {NodeListOf<Element>} */
@@ -236,7 +254,7 @@ function transformRecipe2() {
   }
   let batchSizeL = batchSize(ingredients);
 
-  if (ingredientGroups.malts.length > 0) { rewriteMalts(ingredientGroups.malts) }
+  if (ingredientGroups.malts.length > 0) { rewriteMalts(si, ingredientGroups.malts) }
   if (ingredientGroups.hops.length > 0) { rewriteGramsPerL(ingredientGroups.hops, batchSizeL, "🌿", 0) }
   if (ingredientGroups.yeast.length > 0) { rewriteGramsPerL(ingredientGroups.yeast, batchSizeL, "🧪", 1) }
   if (ingredientGroups.additions.length > 0) { rewriteGramsPerL(ingredientGroups.additions, batchSizeL, "✨", 1) }
@@ -262,6 +280,10 @@ function showOriginal() {
   }
 }
 
-createRadio()
-saveOriginal()
-transformRecipe2()
+try {
+  createRadio()
+  saveOriginal()
+  transformRecipe2()
+} catch (e) {
+  console.error(e)
+}
