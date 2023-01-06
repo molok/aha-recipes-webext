@@ -101,21 +101,39 @@ function formatGrams(grams) {
 // Start the recursion from the body tag.
 // replaceText(document.body);
 
-const ingredients = document.querySelector(".recipe-meta");
-let radio = document.createElement('div')
-radio.innerHTML = `
-<div style="font-family: futura-pt, futura, sans-serif">
-      <input type="radio" id="transform" name="recipe_transform" value="transform"
-             checked>
-      <label for="transform">Show Percentages</label>
-    </div>
 
-<div style="font-family: futura-pt, futura, sans-serif">
-      <input type="radio" id="original" name="recipe_transform" value="original">
-      <label for="original">Show Original</label>
-    </div>
-`
-ingredients.appendChild(radio)
+function createRadio() {
+  if (document.querySelector('#original') !== null) {
+    return
+  }
+
+  const ingredients = document.querySelector(".recipe-meta");
+  let radio = document.createElement('div')
+  radio.innerHTML = `
+    <div style="font-family: futura-pt, futura, sans-serif">
+          <input type="radio" id="transform" name="recipe_transform" value="transform" checked>
+          <label for="transform">Show Percentages</label>
+        </div>
+
+    <div style="font-family: futura-pt, futura, sans-serif">
+          <input type="radio" id="original" name="recipe_transform" value="original">
+          <label for="original">Show Original</label>
+        </div>
+    `
+  ingredients.appendChild(radio)
+
+  let radioOptions = document.querySelectorAll('input[name="recipe_transform"]')
+  radioOptions.forEach( x => {
+    x.addEventListener("change", function() {
+      let value = this.value
+      if (value === 'original') {
+        showOriginal()
+      } else {
+        transformRecipe2()
+      }
+    })
+  })
+}
 
 function batchSize(ingredients) {
   let batchSizeL = null
@@ -203,18 +221,6 @@ function transformRecipe2() {
   if (ingredientGroups.additions.length > 0) { rewriteGramsPerL(ingredientGroups.additions, batchSizeL, "✨", 1) }
 }
 
-let radioOptions = document.querySelectorAll('input[name="recipe_transform"]')
-radioOptions.forEach( x => {
-  x.addEventListener("change", function() {
-    let value = this.value
-    if (value === 'original') {
-      showOriginal()
-    } else {
-      transformRecipe2()
-    }
-  })
-})
-
 let original
 function saveOriginal() {
   console.log('saving original')
@@ -228,5 +234,6 @@ function showOriginal() {
   document.querySelector('.ingredients').innerHTML = original
 }
 
+createRadio()
 saveOriginal()
 transformRecipe2()
