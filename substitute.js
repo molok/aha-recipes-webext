@@ -123,6 +123,27 @@ radio.innerHTML = `
 `
 ingredients.appendChild(radio)
 
+function batchSize(ingredients) {
+  let batchSizeL = null
+  let batchSizeElement = [...ingredients.querySelectorAll("p")].find(e => e.textContent.includes("Yield:"))
+  if (batchSizeElement !== undefined) {
+    const batchSizeGRaw = (batchSizeElement.textContent.match(/\(?[0-9.]+ (us|u.s.)? ?(gallon|gal)s?\.?\)?/gi) || [])[0]
+    const batchSizeLRaw = (batchSizeElement.textContent.match(/\(?[0-9.]+ (liter|l)s?\.?\)?/gi) || [])[0]
+    if (batchSizeLRaw) {
+      batchSizeL = +(batchSizeLRaw.match(/[0-9.]+/)[0])
+    } else if (batchSizeGRaw) {
+      batchSizeL = round(usgallons_to_l(+(batchSizeGRaw.match(/[0-9.]+/)[0])), 1)
+    }
+
+    batchSizeElement.textContent = batchSizeElement.textContent.replace(batchSizeGRaw, '#QTY#').replace(batchSizeLRaw, '#QTY#')
+        .replaceAll(/  /g, ' ')
+        .replaceAll(/(#QTY#|#QTY# ){2,}/g, '#QTY#')
+        .replace("#QTY#", `${batchSizeL} L`)
+  }
+
+  return batchSizeL;
+}
+
 function transformRecipe2() {
   /** @type {Element} */
   const ingredients = document.querySelector('.ingredients')
@@ -167,27 +188,15 @@ function transformRecipe2() {
     })
   }
 
-  console.log(`malts: ${ingredientGroups.malts.map(e => e.textContent)}`)
-
   if (ingredientGroups.malts.length === 0) {
     ingredientGroups.malts = [...ingredients.querySelectorAll('li')]
         .filter(m => !m.textContent.toUpperCase().includes("SUGAR") || !m.textContent.toUpperCase().includes("PRIM"))
         .filter(m => ["MALT", "BARLEY", "OATS", "EXTRACT", "SUGAR"].find(c => m.textContent.toUpperCase().includes(c)) !== undefined)
   }
 
-  console.log(`malts: ${ingredientGroups.malts.map(e => e.textContent)}`)
-
-  if (ingredientGroups.malts.length > 0) {
-    rewriteMalts(ingredientGroups.malts)
-  }
-
   if (ingredientGroups.hops.length === 0) {
     ingredientGroups.hops = [...ingredients.querySelectorAll('li')]
         .filter(m => ["HOP", "PELLET", " AA ", " A.A. "].find( c => m.textContent.toUpperCase().includes(c)) !== undefined)
-  }
-
-  if (ingredientGroups.hops.length > 0) {
-    rewriteGramsPerL(ingredientGroups.hops, 10, "🌿", 0)
   }
 
   if (ingredientGroups.yeast.length === 0) {
@@ -196,18 +205,16 @@ function transformRecipe2() {
         .filter(m => ["YEAST"].find( c => m.textContent.toUpperCase().includes(c)) !== undefined)
   }
 
-  if (ingredientGroups.yeast.length > 0) {
-    rewriteGramsPerL(ingredientGroups.yeast, 10, "🧪", 1)
-  }
-
   if (ingredientGroups.additions.length === 0) {
     ingredientGroups.additions = [...ingredients.querySelectorAll('li')]
         .filter(m => ["IRISH MOSS", "PROTAFLOC", "NUTRIENT"].find( c => m.textContent.toUpperCase().includes(c)) !== undefined)
   }
+  let batchSizeL = batchSize(ingredients);
 
-  if (ingredientGroups.additions.length > 0) {
-    rewriteGramsPerL(ingredientGroups.additions, 10, "✨", 1)
-  }
+  if (ingredientGroups.malts.length > 0) { rewriteMalts(ingredientGroups.malts) }
+  if (ingredientGroups.hops.length > 0) { rewriteGramsPerL(ingredientGroups.hops, batchSizeL, "🌿", 0) }
+  if (ingredientGroups.yeast.length > 0) { rewriteGramsPerL(ingredientGroups.yeast, batchSizeL, "🧪", 1) }
+  if (ingredientGroups.additions.length > 0) { rewriteGramsPerL(ingredientGroups.additions, batchSizeL, "✨", 1) }
 }
 
 let radioOptions = document.querySelectorAll('input[name="recipe_transform"]')
