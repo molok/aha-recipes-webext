@@ -110,13 +110,13 @@ function showOriginal() {
 const ingredients = document.querySelector(".recipe-meta");
 let radio = document.createElement('div')
 radio.innerHTML = `
-<div>
+<div style="font-family: futura-pt, futura, sans-serif">
       <input type="radio" id="transform" name="recipe_transform" value="transform"
              checked>
       <label for="transform">Show Percentages</label>
     </div>
 
-    <div>
+<div style="font-family: futura-pt, futura, sans-serif">
       <input type="radio" id="original" name="recipe_transform" value="original">
       <label for="original">Show Original</label>
     </div>
