@@ -70,23 +70,64 @@ function rewriteMalts(si,inputMalts) {
   })
 }
 
-function rewriteGramsPerL(inputHops, batchSizeL, icon, precision) {
+function rewriteGramsPerL(si, inputHops, batchSizeL, icon, precision) {
   const hops = inputHops.map(m => ({element: m, origContent: m.textContent}))
   hops.forEach(m => normalizeQty(m))
 
   hops.filter(x => x.g).forEach(x => x.gPerL = round(x.g / batchSizeL, 1+precision))
   hops.filter(x => x.ml).forEach(x => x.mlPerL = round(x.ml / batchSizeL, 1+precision))
   hops.filter(x => x.gPerL).forEach(x => x.newContent = x.content
-      .replace('#QTY#', `${icon} ${x.gPerL.toFixed(2).padStart(3)}g/L (${x.g.toFixed(precision)}g) `))
+      .replace('#QTY#', `${icon} ${formatGramsPerL(si, x.gPerL, x.g, precision, batchSizeL)} `))
 
   hops.filter(x => x.mlPerL).forEach(x => x.newContent = x.content
-      .replace('#QTY#', `${icon} ${x.mlPerL.toFixed(2).padStart(3)}ml/L (${x.ml.toFixed(precision)}ml) `))
+      .replace('#QTY#', `${icon} ${formatMlPerL(si, x.mlPerL, x.ml, precision, batchSizeL)}`))
+      // .replace('#QTY#', `${icon} ${x.mlPerL.toFixed(2).padStart(3)}ml/L (${x.ml.toFixed(precision)}ml) `))
+
 
   hops.forEach(m => {
     if (m.newContent && m.newContent !== m.origContent) {
       m.element.textContent = m.newContent
     }
   })
+}
+
+function litersToGallons(liters) {
+  return liters * 0.264172
+}
+
+function mlToFloz(ml) {
+  return ml * 0.033814
+}
+
+function gramsToOz(grams) {
+  return grams * 0.03527396195
+}
+
+
+function formatMlPerL(si, mlPerL, ml, precision, batchSizeL) {
+  if (si) {
+    return `${mlPerL.toFixed(2).padStart(3)} ml/L (${ml.toFixed(precision)} ml) `
+  } else {
+    let floz = mlToFloz(ml)
+    let liters = batchSizeL
+    let gallons = litersToGallons(liters)
+    let flozPerGal = floz/gallons
+
+    return `${flozPerGal.toFixed(2+2).padStart(3)} floz/gal (${floz.toFixed(precision+2)} floz) `
+  }
+}
+
+function formatGramsPerL(si, gPerL, grams, precision, batchSizeL) {
+  if (si) {
+    return `${gPerL.toFixed(2).padStart(3)} g/L (${grams.toFixed(precision)} g)`
+  } else {
+    let oz = gramsToOz(grams)
+    let liters = batchSizeL
+    let gallons = litersToGallons(liters)
+    let ozPerGal = oz/gallons
+
+    return `${ozPerGal.toFixed(3).padStart(3)} oz/gal (${oz.toFixed(precision+2)} oz)`
+  }
 }
 
 function formatGrams(si, grams) {
@@ -255,9 +296,9 @@ function transformRecipe2(si) {
   let batchSizeL = batchSize(ingredients);
 
   if (ingredientGroups.malts.length > 0) { rewriteMalts(si, ingredientGroups.malts) }
-  if (ingredientGroups.hops.length > 0) { rewriteGramsPerL(ingredientGroups.hops, batchSizeL, "🌿", 0) }
-  if (ingredientGroups.yeast.length > 0) { rewriteGramsPerL(ingredientGroups.yeast, batchSizeL, "🧪", 1) }
-  if (ingredientGroups.additions.length > 0) { rewriteGramsPerL(ingredientGroups.additions, batchSizeL, "✨", 1) }
+  if (ingredientGroups.hops.length > 0) { rewriteGramsPerL(si, ingredientGroups.hops, batchSizeL, "🌿", 0) }
+  if (ingredientGroups.yeast.length > 0) { rewriteGramsPerL(si, ingredientGroups.yeast, batchSizeL, "🧪", 1) }
+  if (ingredientGroups.additions.length > 0) { rewriteGramsPerL(si, ingredientGroups.additions, batchSizeL, "✨", 1) }
 }
 
 let originalIngredientsElement
