@@ -98,12 +98,6 @@ function formatGrams(grams) {
   }
 }
 
-
-function showOriginal() {
-  const ingredients = document.querySelector(".ingredients");
-  ingredients.innerHTML = original
-}
-
 // Start the recursion from the body tag.
 // replaceText(document.body);
 
@@ -221,4 +215,18 @@ radioOptions.forEach( x => {
   })
 })
 
+let original
+function saveOriginal() {
+  console.log('saving original')
+  // const originalTextContent = document.querySelector(".ingredients").querySelectorAll("li,p");
+  // original = [...originalTextContent].map(e => ({element: e, originalTextContent: e.textContent}))
+  original = document.querySelector('.ingredients').innerHTML
+  console.log('ok')
+}
+
+function showOriginal() {
+  document.querySelector('.ingredients').innerHTML = original
+}
+
+saveOriginal()
 transformRecipe2()
