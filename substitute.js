@@ -108,19 +108,40 @@ function createRadio() {
   }
 
   const ingredients = document.querySelector(".recipe-meta");
+  /** @type {Element} */
   let radio = document.createElement('div')
-  radio.innerHTML = `
-    <div style="font-family: futura-pt, futura, sans-serif">
-          <input type="radio" id="transform" name="recipe_transform" value="transform" checked>
-          <label for="transform">Show Percentages</label>
-        </div>
 
-    <div style="font-family: futura-pt, futura, sans-serif">
-          <input type="radio" id="original" name="recipe_transform" value="original">
-          <label for="original">Show Original</label>
-        </div>
-    `
+  function newRadioOption(inputId, label, value) {
+    let div1 = document.createElement("div")
+    div1.style = "font-family: futura-pt, futura, sans-serif"
+    let input1 = document.createElement("input")
+    input1.type = "radio"
+    input1.id = inputId
+    input1.name = "recipe_transform"
+    input1.value = value
+
+    let label1 = document.createElement("label")
+    label1.htmlFor = inputId
+    label1.textContent = label
+
+
+    div1.appendChild(input1)
+    /* for some reason it improves the rendering in firefox, I'm baffled */
+    div1.appendChild(document.createTextNode("\u00A0"))
+
+    div1.appendChild(label1)
+    return div1
+  }
+
+  const div1 = newRadioOption("transform", "Show Percentages", "transform")
+  const div2 = newRadioOption("original", "Show Original", "original")
+
+  radio.appendChild(div1)
+  radio.appendChild(div2)
+
   ingredients.appendChild(radio)
+
+  document.querySelector('#transform').setAttribute("checked", "")
 
   let radioOptions = document.querySelectorAll('input[name="recipe_transform"]')
   radioOptions.forEach( x => {
