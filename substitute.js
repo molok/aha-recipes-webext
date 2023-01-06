@@ -170,21 +170,13 @@ function transformRecipe2() {
     )
 
     Object.getOwnPropertyNames(ingredientGroupsAll).forEach(x => {
-      if (x.toUpperCase().includes("MALT") || x.toUpperCase().includes("FERMENTABLE") || x.toUpperCase().includes("GRAINS") || x.toUpperCase().includes("EXTRACT")) {
+      if (["MALT", "FERMENTABLE", "GRAINS", "EXTRACT", "ADJUNCT"].find(c => x.toUpperCase().includes(c)) !== undefined) {
         ingredientGroups.malts = [...ingredientGroups.malts, ...ingredientGroupsAll[x]]
       }
 
-      if (x.toUpperCase().includes("HOP")) {
-        ingredientGroups.hops = ingredientGroupsAll[x]
-      }
-
-      if (x.toUpperCase().includes("YEAST")) {
-        ingredientGroups.yeast = ingredientGroupsAll[x]
-      }
-
-      if (x.toUpperCase().includes("ADDITION")) {
-        ingredientGroups.additions = ingredientGroupsAll[x]
-      }
+      if (x.toUpperCase().includes("HOP")) { ingredientGroups.hops = ingredientGroupsAll[x] }
+      if (x.toUpperCase().includes("YEAST")) { ingredientGroups.yeast = ingredientGroupsAll[x] }
+      if (x.toUpperCase().includes("ADDITION")) { ingredientGroups.additions = ingredientGroupsAll[x] }
     })
   }
 
