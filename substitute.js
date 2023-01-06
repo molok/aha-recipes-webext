@@ -42,10 +42,13 @@ function normalizeQty(x) {
     x.ml = (+(ml.match(/[0-9.]+/)))
   } else if (tsp) {
     x.ml = 5 * (+(tsp.match(/[0-9.]+/)))
+    x.clarification = tsp
   } else if (sachets) { /* yeast? */
     x.g = 11 * (+(sachets.match(/[0-9.]+/)))
+    x.clarification = sachets
   } else if (package) { /* yeast? */
     x.g = 11 * (+(package.match(/[0-9.]+/)))
+    x.clarification = package
   }
 }
 
@@ -61,7 +64,7 @@ function rewriteMalts(si,inputMalts) {
   malts.filter(x => x.g).forEach(x => x.perc = round(x.g * 100 / tot, 1))
   malts.filter(x => x.g).forEach(x => x.newContent = x.content
       .replaceAll(/\([0-9.]+\s?%\)/g, '') /* remove existing percentages */
-      .replace('#QTY#', `🌾 ${x.perc.toFixed(2).padStart(6)}% (${formatGrams(si, x.g)}) `))
+      .replace('#QTY#', `🌾 ${x.perc.toFixed(2).padStart(6)}% (${formatGrams(si, x.g, x.clarification)}) `))
 
   malts.forEach(m => {
     if (m.newContent && m.newContent !== m.origContent) {
@@ -77,7 +80,7 @@ function rewriteGramsPerL(si, inputHops, batchSizeL, icon, precision) {
   hops.filter(x => x.g).forEach(x => x.gPerL = round(x.g / batchSizeL, 1+precision))
   hops.filter(x => x.ml).forEach(x => x.mlPerL = round(x.ml / batchSizeL, 1+precision))
   hops.filter(x => x.gPerL).forEach(x => x.newContent = x.content
-      .replace('#QTY#', `${icon} ${formatGramsPerL(si, x.gPerL, x.g, precision, batchSizeL)} `))
+      .replace('#QTY#', `${icon} ${formatGramsPerL(si, x.gPerL, x.g, precision, batchSizeL, x.clarification)} `))
 
   hops.filter(x => x.mlPerL).forEach(x => x.newContent = x.content
       .replace('#QTY#', `${icon} ${formatMlPerL(si, x.mlPerL, x.ml, precision, batchSizeL)}`))
@@ -104,33 +107,45 @@ function gramsToOz(grams) {
 }
 
 
-function formatMlPerL(si, mlPerL, ml, precision, batchSizeL) {
+function formatMlPerL(si, mlPerL, ml, precision, batchSizeL, clarification) {
+  let clarSuffix = ''
+  if (clarification) {
+    clarSuffix = ` or ${clarification}`
+  }
   if (si) {
-    return `${mlPerL.toFixed(2).padStart(3)} ml/L (${ml.toFixed(precision)} ml) `
+    return `${mlPerL.toFixed(2).padStart(3)} ml/L (${ml.toFixed(precision)} ml${clarSuffix}) `
   } else {
     let floz = mlToFloz(ml)
     let liters = batchSizeL
     let gallons = litersToGallons(liters)
     let flozPerGal = floz/gallons
 
-    return `${flozPerGal.toFixed(2+2).padStart(3)} floz/gal (${floz.toFixed(precision+2)} floz) `
+    return `${flozPerGal.toFixed(2+2).padStart(3)} floz/gal (${floz.toFixed(precision+2)} floz${clarSuffix}) `
   }
 }
 
-function formatGramsPerL(si, gPerL, grams, precision, batchSizeL) {
+function formatGramsPerL(si, gPerL, grams, precision, batchSizeL, clarification) {
+  let clarSuffix = ''
+  if (clarification) {
+    clarSuffix = ` or ${clarification}`
+  }
   if (si) {
-    return `${gPerL.toFixed(2).padStart(3)} g/L (${grams.toFixed(precision)} g)`
+    return `${gPerL.toFixed(2).padStart(3)} g/L (${grams.toFixed(precision)} g${clarSuffix})`
   } else {
     let oz = gramsToOz(grams)
     let liters = batchSizeL
     let gallons = litersToGallons(liters)
     let ozPerGal = oz/gallons
 
-    return `${ozPerGal.toFixed(3).padStart(3)} oz/gal (${oz.toFixed(precision+2)} oz)`
+    return `${ozPerGal.toFixed(3).padStart(3)} oz/gal (${oz.toFixed(precision+2)} oz${clarSuffix})`
   }
 }
 
-function formatGrams(si, grams) {
+function formatGrams(si, grams, clarification) {
+  let clarSuffix = ''
+  if (clarification) {
+    clarSuffix = ` or ${clarification}`
+  }
   if (si) {
     if (grams > 1000) {
       return `${(grams / 1000).toFixed(2)} kg`
@@ -142,9 +157,9 @@ function formatGrams(si, grams) {
     let oz = grams * 0.03527396195
     if (oz > 16) {
       let lb = oz / 16
-      return `${(lb).toFixed(2)} lb`
+      return `${(lb).toFixed(2)} lb${clarSuffix}`
     }
-    return `${(oz).toFixed(2)} oz`
+    return `${(oz).toFixed(2)} oz${clarSuffix}`
   }
 }
 
