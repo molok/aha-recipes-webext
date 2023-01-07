@@ -16,8 +16,10 @@ function usgallons_to_l(gal) {
 }
 
 /* adds content and g */
-function normalizeQty(x) {
-  let origContent = x.origContent.replace("½", "0.5")
+function normalizeQty(si, x) {
+  let origContent = x.origContent
+      .replace("½", "0.5")
+      .replace("⅓", "0.33")
       .replace("1/2", "0.5")
       .replace("1/3", "0.33")
       .replace("1/4", "0.25")
@@ -39,25 +41,46 @@ function normalizeQty(x) {
       .replaceAll(/  /g, ' ')
       .replaceAll(/(#QTY#|#QTY# ){2,}/g, '#QTY#')
 
-  if (kgs) {
-    x.g = (+(kgs.match(/[0-9.]+/))) * 1000
-  } else if (gs) {
-    x.g = +(gs.match(/[0-9.]+/))
-  } else if (lbs) {
-    x.g = lb_to_g(+(lbs.match(/[0-9.]+/)))
-  } else if (ozs) {
-    x.g = oz_to_g(+(ozs.match(/[0-9.]+/)))
-  } else if (ml) {
-    x.ml = (+(ml.match(/[0-9.]+/)))
-  } else if (tsp) {
-    x.ml = 5 * (+(tsp.match(/[0-9.]+/)))
-    x.clarification = tsp
-  } else if (sachets) { /* yeast? */
-    x.g = 11 * (+(sachets.match(/[0-9.]+/)))
-    x.clarification = sachets
-  } else if (package) { /* yeast? */
-    x.g = 11 * (+(package.match(/[0-9.]+/)))
-    x.clarification = package
+  const normalizeSi = () => {
+    if (kgs) {
+      x.g = (+(kgs.match(/[0-9.]+/))) * 1000
+    } else if (gs) {
+      x.g = +(gs.match(/[0-9.]+/))
+    } else if (ml) {
+      x.ml = (+(ml.match(/[0-9.]+/)))
+    }
+  }
+  const normalizeImperial = () => {
+    if (lbs) {
+      x.g = lb_to_g(+(lbs.match(/[0-9.]+/)))
+    } else if (ozs) {
+      x.g = oz_to_g(+(ozs.match(/[0-9.]+/)))
+    } else if (tsp) {
+      x.ml = 5 * (+(tsp.match(/[0-9.]+/)))
+      x.clarification = tsp.trim()
+    } else if (sachets) { /* yeast? */
+      x.g = 11 * (+(sachets.match(/[0-9.]+/)))
+      x.clarification = sachets.trim()
+    } else if (package) { /* yeast? */
+      x.g = 11 * (+(package.match(/[0-9.]+/)))
+      x.clarification = package.trim()
+    }
+  }
+
+  /* if the users prefers SI units, then we try to parse those first, this way the quantity
+     in the recipe don't change, otherwise the user could potentially see the quantities changing
+     for the rounding used in the recipe between oz and grams
+   */
+  if (si) {
+    normalizeSi()
+    if (x.g === undefined && x.ml === undefined) {
+      normalizeImperial()
+    }
+  } else {
+    normalizeImperial()
+    if (x.g === undefined && x.ml === undefined) {
+      normalizeSi()
+    }
   }
 }
 
@@ -67,13 +90,13 @@ function normalizeQty(x) {
  */
 function rewriteMalts(si,inputMalts) {
   const malts = inputMalts.map(m => ({element: m, origContent: m.textContent}))
-  malts.forEach(m => normalizeQty(m))
+  malts.forEach(m => normalizeQty(si, m))
 
   const tot = malts.filter(x => x.g).map(x => x.g).reduce((acc, curr) => acc + curr, 0)
-  malts.filter(x => x.g).forEach(x => x.perc = round(x.g * 100 / tot, 1))
+  malts.filter(x => x.g).forEach(x => x.perc = round(x.g * 100 / tot, 2))
   malts.filter(x => x.g).forEach(x => x.newContent = x.content
       .replaceAll(/\([0-9.]+\s?%\)/g, '') /* remove existing percentages */
-      .replace('#QTY#', `🌾 ${x.perc.toFixed(2).padStart(6)}% (${formatGrams(si, x.g, x.clarification)}) `))
+      .replace('#QTY#', `🌾 ${round(x.perc, 2).toLocaleString()}% (${formatGrams(si, x.g, x.clarification)}) `))
 
   malts.forEach(m => {
     if (m.newContent && m.newContent !== m.origContent) {
@@ -84,7 +107,7 @@ function rewriteMalts(si,inputMalts) {
 
 function rewriteGramsPerL(si, inputHops, batchSizeL, icon, precision) {
   const hops = inputHops.map(m => ({element: m, origContent: m.textContent}))
-  hops.forEach(m => normalizeQty(m))
+  hops.forEach(m => normalizeQty(si, m))
 
   hops.filter(x => x.g).forEach(x => x.gPerL = round(x.g / batchSizeL, 1+precision))
   hops.filter(x => x.ml).forEach(x => x.mlPerL = round(x.ml / batchSizeL, 1+precision))
@@ -92,7 +115,7 @@ function rewriteGramsPerL(si, inputHops, batchSizeL, icon, precision) {
       .replace('#QTY#', `${icon} ${formatGramsPerL(si, x.gPerL, x.g, precision, batchSizeL, x.clarification)} `))
 
   hops.filter(x => x.mlPerL).forEach(x => x.newContent = x.content
-      .replace('#QTY#', `${icon} ${formatMlPerL(si, x.mlPerL, x.ml, precision, batchSizeL, x.clarification)}`))
+      .replace('#QTY#', `${icon} ${formatMlPerL(si, x.mlPerL, x.ml, precision, batchSizeL, x.clarification)} `))
       // .replace('#QTY#', `${icon} ${x.mlPerL.toFixed(2).padStart(3)}ml/L (${x.ml.toFixed(precision)}ml) `))
 
 
@@ -122,14 +145,14 @@ function formatMlPerL(si, mlPerL, ml, precision, batchSizeL, clarification) {
     clarSuffix = ` or ${clarification}`
   }
   if (si) {
-    return `${mlPerL.toFixed(2).padStart(3)} ml/L (${ml.toFixed(precision)} ml${clarSuffix}) `
+    return `${mlPerL.toLocaleString()} ml/L (${ml.toLocaleString()} ml${clarSuffix}) `
   } else {
     let floz = mlToFloz(ml)
     let liters = batchSizeL
     let gallons = litersToGallons(liters)
     let flozPerGal = floz/gallons
 
-    return `${flozPerGal.toFixed(2+2).padStart(3)} floz/gal (${floz.toFixed(precision+2)} floz${clarSuffix}) `
+    return `${flozPerGal.toLocaleString()} floz/gal (${floz.toLocaleString()} floz${clarSuffix}) `
   }
 }
 
@@ -139,14 +162,14 @@ function formatGramsPerL(si, gPerL, grams, precision, batchSizeL, clarification)
     clarSuffix = ` or ${clarification}`
   }
   if (si) {
-    return `${gPerL.toFixed(2).padStart(3)} g/L (${grams.toFixed(precision)} g${clarSuffix})`
+    return `${round(gPerL, precision+2).toLocaleString()} g/L (${round(grams, precision+1).toLocaleString()} g${clarSuffix})`
   } else {
     let oz = gramsToOz(grams)
     let liters = batchSizeL
     let gallons = litersToGallons(liters)
     let ozPerGal = oz/gallons
 
-    return `${ozPerGal.toFixed(3).padStart(3)} oz/gal (${oz.toFixed(precision+2)} oz${clarSuffix})`
+    return `${round(ozPerGal, precision+2).toLocaleString()} oz/gal (${round(oz, precision+1).toLocaleString()} oz${clarSuffix})`
   }
 }
 
@@ -157,18 +180,18 @@ function formatGrams(si, grams, clarification) {
   }
   if (si) {
     if (grams > 1000) {
-      return `${(grams / 1000).toFixed(2)} kg`
+      return `${(grams / 1000).toLocaleString()} kg`
     } else {
-      return `${(grams).toFixed(0)} g`
+      return `${round(grams, 0).toLocaleString()} g`
     }
   } else {
     /* imperial */
     let oz = grams * 0.03527396195
     if (oz > 16) {
       let lb = oz / 16
-      return `${(lb).toFixed(2)} lb${clarSuffix}`
+      return `${(lb).toLocaleString()} lb${clarSuffix}`
     }
-    return `${(oz).toFixed(2)} oz${clarSuffix}`
+    return `${round(oz, 3).toLocaleString()} oz${clarSuffix}`
   }
 }
 
@@ -238,29 +261,55 @@ function createRadio() {
 function batchSize(si, ingredients) {
   let batchSizeL = null
   let batchSizeElement = [...ingredients.querySelectorAll("p")].find(e => e.textContent.includes("Yield:"))
-  if (batchSizeElement !== undefined) {
-    const batchSizeGRaw = (batchSizeElement.textContent.match(/\(?[0-9.,]+ (us|u.s.)? ?(gallon|gal)s?\.?\)?/gi) || [])[0]
-    const batchSizeLRaw = (batchSizeElement.textContent.match(/\(?[0-9.,]+ (liter|l)s?\.?\)?/gi) || [])[0]
 
-    if (batchSizeGRaw) {
-      batchSizeL = round(usgallons_to_l(+(batchSizeGRaw.match(/[0-9.]+/)[0])), 1)
-    } else if (batchSizeLRaw) {
-      batchSizeL = +(batchSizeLRaw.match(/[0-9.]+/)[0])
-    }
-
-    let content = batchSizeElement.textContent.replace(batchSizeGRaw, '#QTY#').replace(batchSizeLRaw, '#QTY#')
-        .replaceAll(/  /g, ' ')
-        .replaceAll(/(#QTY#|#QTY# ){2,}/g, '#QTY#')
-
-    if (si) {
-      content = content.replace("#QTY#", `${batchSizeL} L`)
-    } else {
-      content = content.replace("#QTY#", `${litersToGallons(batchSizeL).toFixed(2)} US gal`)
-    }
-
-    batchSizeElement.textContent = content
-
+  if (batchSizeElement === undefined) {
+    return null
   }
+
+  let yieldElements = []
+  let curr
+  if (batchSizeElement.firstChild !== null) {
+    curr = batchSizeElement.firstChild
+    while (curr.nextSibling !== null) {
+      yieldElements = [...yieldElements, curr.nextSibling]
+      curr = curr.nextSibling
+    }
+  }
+
+  yieldElements = [...yieldElements, batchSizeElement]
+
+  function matchBatchSize(el) {
+    if (!el.textContent) { return [null, null] }
+    const batchSizeGRaw = (el.textContent.match(/\(?[0-9.,]+ (us|u.s.)? ?(gallon|gal)s?\.?\)?/gi) || [])[0]
+    const batchSizeLRaw = (el.textContent.match(/\(?[0-9.,]+ (liter|l)s?\.?\)?/gi) || [])[0]
+    return [batchSizeGRaw, batchSizeLRaw]
+  }
+
+  /* I'm looking for the smaller node matching at least one regex because I don't want to modify unwanted attributes of
+     the text content: often in the recipe the Yield string is bold, so I only want to match the node with the batch size
+     to avoid overriding the boldness or other style elements
+   */
+  batchSizeElement = yieldElements.find(x => matchBatchSize(x).filter(x => !!x).length > 0)
+
+  let [batchSizeGRaw, batchSizeLRaw] = matchBatchSize(batchSizeElement)
+
+  if (batchSizeGRaw) {
+    batchSizeL = round(usgallons_to_l(+(batchSizeGRaw.match(/[0-9.]+/)[0])), 2)
+  } else if (batchSizeLRaw) {
+    batchSizeL = +(batchSizeLRaw.match(/[0-9.]+/)[0])
+  }
+
+  let content = batchSizeElement.textContent.replace(batchSizeGRaw, '#QTY#').replace(batchSizeLRaw, '#QTY#')
+      .replaceAll(/  /g, ' ')
+      .replaceAll(/(#QTY#|#QTY# ){2,}/g, '#QTY#')
+
+  if (si) {
+    content = content.replace("#QTY#", `${round(batchSizeL, 2)} L`)
+  } else {
+    content = content.replace("#QTY#", `${round(litersToGallons(batchSizeL), 2).toLocaleString()} US gal`)
+  }
+
+  batchSizeElement.textContent = content
 
   return batchSizeL;
 }
@@ -329,7 +378,7 @@ function transformRecipe2(si) {
   let batchSizeL = batchSize(si, ingredients);
 
   if (ingredientGroups.malts.length > 0) { rewriteMalts(si, ingredientGroups.malts) }
-  if (ingredientGroups.hops.length > 0) { rewriteGramsPerL(si, ingredientGroups.hops, batchSizeL, "🌿", 0) }
+  if (ingredientGroups.hops.length > 0) { rewriteGramsPerL(si, ingredientGroups.hops, batchSizeL, "🌿", 1) }
   if (ingredientGroups.yeast.length > 0) { rewriteGramsPerL(si, ingredientGroups.yeast, batchSizeL, "🧪", 1) }
   if (ingredientGroups.additions.length > 0) { rewriteGramsPerL(si, ingredientGroups.additions, batchSizeL, "✨", 1) }
 }
