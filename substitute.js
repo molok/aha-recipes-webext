@@ -31,7 +31,7 @@ function normalizeQty(si, x) {
   let lbs = (origContent.match(/\(?[0-9.]+ ?(lb)s?\.?\s?\)?\s/gi)||[])[0]
   let ozs = (origContent.match(/\(?[0-9.]+ ?(oz)s?\.?\s?\)?\s/gi)||[])[0]
   let kgs = (origContent.match(/\(?[0-9.]+ ?(kg)s?\.?\s?\)?\s/gi)||[])[0]
-  let gs = (origContent.match(/\(?[0-9.]+ ?(g)s?\.?\s?\)?\s/gi)||[])[0]
+  let gs = (origContent.match(/\(?[0-9.]+ ?(g)s?\.?(\s|,)?\)?\s/gi)||[])[0]
   let sachets = (origContent.match(/\(?[0-9.]+ ?(sachet)s?\.?\s?\)?\s/gi)||[])[0]
   let package = (origContent.match(/\(?[0-9.]+ ?(package|pckg|pkg)s?\.?\s?\)?\s/gi)||[])[0]
   let tsp = (origContent.match(/\(?[0-9.]+ ?(tsp)s?\.?\s?\)?\s/gi)||[])[0]
@@ -116,11 +116,12 @@ function rewriteGramsPerL(si, inputHops, batchSizeL, icon, precision) {
   hops.filter(x => x.g).forEach(x => x.gPerL = round(x.g / batchSizeL, 1+precision))
   hops.filter(x => x.ml).forEach(x => x.mlPerL = round(x.ml / batchSizeL, 1+precision))
   hops.filter(x => x.gPerL).forEach(x => x.newContent = x.content
-      .replace('#QTY#', `${icon} ${formatGramsPerL(si, x.gPerL, x.g, precision, batchSizeL, x.clarification)} `))
+      .replace('#QTY#', `${icon} ${formatGramsPerL(si, x.gPerL, x.g, precision, batchSizeL, x.clarification)} `)
+      .replaceAll("#QTY#", ''))
 
   hops.filter(x => x.mlPerL).forEach(x => x.newContent = x.content
-      .replace('#QTY#', `${icon} ${formatMlPerL(si, x.mlPerL, x.ml, precision, batchSizeL, x.clarification)} `))
-      // .replace('#QTY#', `${icon} ${x.mlPerL.toFixed(2).padStart(3)}ml/L (${x.ml.toFixed(precision)}ml) `))
+      .replace('#QTY#', `${icon} ${formatMlPerL(si, x.mlPerL, x.ml, precision, batchSizeL, x.clarification)} `)
+      .replaceAll("#QTY#", ''))
 
 
   hops.forEach(m => {
@@ -354,7 +355,9 @@ function transformRecipe2(si) {
 
       if (x.toUpperCase().includes("HOP")) { ingredientGroups.hops = ingredientGroupsAll[x] }
       if (x.toUpperCase().includes("YEAST")) { ingredientGroups.yeast = ingredientGroupsAll[x] }
-      if (x.toUpperCase().includes("ADDITION")) { ingredientGroups.additions = ingredientGroupsAll[x] }
+      if (["ADDITION", "ENZYM"].find(c => x.toUpperCase().includes(c))) {
+        ingredientGroups.additions = [...ingredientGroups.additions, ...ingredientGroupsAll[x]]
+      }
     })
   }
 
