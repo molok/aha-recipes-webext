@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
-    "name": "AHA Recipes",
-    "description": "Beautifies homebrewersassociation recipes.",
+    "name": "AHA Recipes Plus",
+    "description": "Beautifies homebrewersassociation.org recipes: it adds percentages for malts, batch-size agnostic measurements (hops, yeast, other additions) and can show either metric or imperial units. AHA is the American Homebrewers Association",
     "homepage_url": "https://github.com/molok/aha-recipes-webext",
     "version": "0.2",
     "icons": {
