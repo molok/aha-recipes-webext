@@ -1,18 +1,18 @@
 {
-  "manifest_version": 3,
-  "name": "AHA Recipes",
-  "description": "Beautifies homebrewersassociation recipes.",
-  "homepage_url": "https://github.com/molok/aha-recipes-webext",
-  "version": "0.2",
-  "icons": {
-    "48": "icons/icon.png",
-    "96": "icons/icon@2x.png"
-  },
+    "manifest_version": 2,
+    "name": "AHA Recipes",
+    "description": "Beautifies homebrewersassociation recipes.",
+    "homepage_url": "https://github.com/molok/aha-recipes-webext",
+    "version": "0.2",
+    "icons": {
+        "48": "icons/icon.png",
+        "96": "icons/icon@2x.png"
+    },
 
-  "content_scripts": [
-    {
-      "matches": ["https://www.homebrewersassociation.org/homebrew-recipe/*"],
-      "js": ["./substitute.js"]
-    }
-  ]
+    "content_scripts": [
+        {
+            "matches": ["https://www.homebrewersassociation.org/homebrew-recipe/*"],
+            "js": ["./substitute.js"]
+        }
+    ]
 }
