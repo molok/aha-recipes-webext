@@ -15,7 +15,6 @@ function usgallons_to_l(gal) {
   return gal * 3.78541
 }
 
-/* adds content and g */
 function normalizeQty(si, x) {
   let origContent = x.origContent
       .replace("½", "0.5")
@@ -34,7 +33,7 @@ function normalizeQty(si, x) {
   let kgs = (origContent.match(/\(?[0-9.]+ ?(kg)s?\.?\s?\)?\s/gi)||[])[0]
   let gs = (origContent.match(/\(?[0-9.]+ ?(g)s?\.?\s?\)?\s/gi)||[])[0]
   let sachets = (origContent.match(/\(?[0-9.]+ ?(sachet)s?\.?\s?\)?\s/gi)||[])[0]
-  let package = (origContent.match(/\(?[0-9.]+ ?(package)s?\.?\s?\)?\s/gi)||[])[0]
+  let package = (origContent.match(/\(?[0-9.]+ ?(package|pckg|pkg)s?\.?\s?\)?\s/gi)||[])[0]
   let tsp = (origContent.match(/\(?[0-9.]+ ?(tsp)s?\.?\s?\)?\s/gi)||[])[0]
   let ml = (origContent.match(/\(?[0-9.]+ ?(ml)s?\.?\s?\)?\s/gi)||[])[0]
   x.content = [lbs, ozs, kgs, gs, tsp, ml, sachets, package].reduce((acc, curr) => acc.replace(curr, '#QTY#'), origContent)
@@ -70,6 +69,11 @@ function normalizeQty(si, x) {
   /* if the users prefers SI units, then we try to parse those first, this way the quantity
      in the recipe don't change, otherwise the user could potentially see the quantities changing
      for the rounding used in the recipe between oz and grams
+
+     TODO FIXME maybe it would be better to parse the first unit in the string, so that recipes expressed
+     in imperial with SI units between parenthesis would use imperial units since they seem to be more precise
+     I've seen blatant conversion errors, e.g. https://www.homebrewersassociation.org/homebrew-recipe/it-goes-to-11-stout/
+     has 400g instead of 680g
    */
   if (si) {
     normalizeSi()
